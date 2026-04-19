@@ -1,0 +1,567 @@
+Clases de Java:
+
+Administrdor.java:
+
+package com.taller.ventas.model;
+
+public class Administrador extends Empleado {
+    public Administrador(int idEmpleado, String nombreEmpleado, String correo, String turno) {
+        super(idEmpleado, nombreEmpleado, correo, turno);
+    }
+
+    public void gestionarInventario() {
+        System.out.println("Administrador " + nombreEmpleado + " está gestionando el inventario.");
+    }
+}
+
+Cliente.java:
+
+package com.taller.ventas.model;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class Cliente {
+    private int idCliente;
+    private String nombre;
+    private String email;
+    private List<Factura> historialCompras;
+
+    public Cliente(int idCliente, String nombre, String email) {
+        this.idCliente = idCliente;
+        this.nombre = nombre;
+        this.email = email;
+        this.historialCompras = new ArrayList<>();
+    }
+
+    public int getIdCliente() { return idCliente; }
+    public String getNombre() { return nombre; }
+    public String getEmail() { return email; }
+
+    public List<Factura> obtenerHistorialCompras() {
+        return new ArrayList<>(historialCompras);
+    }
+
+    public void agregarFactura(Factura factura) {
+        historialCompras.add(factura);
+    }
+
+    @Override
+    public String toString() {
+        return "Cliente{id=" + idCliente + ", nombre='" + nombre + "', email='" + email + "'}";
+    }
+}
+
+DetalleVenta.java:
+
+package com.taller.ventas.model;
+
+public class DetalleVenta {
+    private int cantidad;
+    private double precioUnitario;
+    private double subtotal;
+    private ProductoFisico producto;
+
+    public DetalleVenta(int cantidad, ProductoFisico producto) {
+        this.cantidad = cantidad;
+        this.producto = producto;
+        this.precioUnitario = producto.getPrecio();
+        calcularSubtotal();
+    }
+
+    public int getCantidad() { return cantidad; }
+    public double getPrecioUnitario() { return precioUnitario; }
+    public double getSubtotal() { return subtotal; }
+    public ProductoFisico getProducto() { return producto; }
+
+    public final void calcularSubtotal() {
+        this.subtotal = cantidad * precioUnitario;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%d x %s = $%.2f", cantidad, producto.getNombreProducto(), subtotal);
+    }
+}
+
+Empleado.java:
+
+package com.taller.ventas.model;
+
+public abstract class Empleado {
+    protected int idEmpleado;
+    protected String nombreEmpleado;
+    protected String correo;
+    protected String turno;
+
+    public Empleado(int idEmpleado, String nombreEmpleado, String correo, String turno) {
+        this.idEmpleado = idEmpleado;
+        this.nombreEmpleado = nombreEmpleado;
+        this.correo = correo;
+        this.turno = turno;
+    }
+
+    public int getIdEmpleado() { return idEmpleado; }
+    public String getNombreEmpleado() { return nombreEmpleado; }
+    public String getCorreo() { return correo; }
+    public String getTurno() { return turno; }
+
+    public void cambiarTurno(String nuevoTurno) {
+        this.turno = nuevoTurno;
+        System.out.println("Turno cambiado a: " + nuevoTurno);
+    }
+
+    public boolean validarCredenciales(String email, String password) {
+        // Simulación: en un caso real se compararía con base de datos
+        return this.correo.equals(email) && password.equals("1234");
+    }
+
+    @Override
+    public String toString() {
+        return "Empleado{id=" + idEmpleado + ", nombre='" + nombreEmpleado + "', turno='" + turno + "'}";
+    }
+}
+
+Factura.java:
+
+package com.taller.ventas.model;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+public class Factura {
+    private int idVenta;
+    private Date fecha;
+    private double total;
+    private String metodoPago;
+    private Cliente cliente;
+    private Vendedor vendedor;
+    private List<DetalleVenta> detalles;
+
+    public Factura(int idVenta, String metodoPago, Cliente cliente, Vendedor vendedor) {
+        this.idVenta = idVenta;
+        this.fecha = new Date();
+        this.metodoPago = metodoPago;
+        this.cliente = cliente;
+        this.vendedor = vendedor;
+        this.detalles = new ArrayList<>();
+        this.total = 0;
+    }
+
+    public int getIdVenta() { return idVenta; }
+    public Date getFecha() { return fecha; }
+    public double getTotal() { return total; }
+    public String getMetodoPago() { return metodoPago; }
+    public Cliente getCliente() { return cliente; }
+    public Vendedor getVendedor() { return vendedor; }
+    public List<DetalleVenta> getDetalles() { return new ArrayList<>(detalles); }
+
+    public void agregarDetalle(int cantidad, ProductoFisico producto) {
+        if (!producto.verificarDisponibilidad(cantidad)) {
+            throw new IllegalArgumentException("Stock insuficiente para " + producto.getNombreProducto());
+        }
+        DetalleVenta detalle = new DetalleVenta(cantidad, producto);
+        detalles.add(detalle);
+        producto.reducirStock(cantidad);
+        calcularTotal();
+    }
+
+    public final void calcularTotal() {
+        this.total = 0;
+        for (DetalleVenta d : detalles) {
+            this.total += d.getSubtotal();
+        }
+    }
+
+    public void imprimirFactura() {
+        System.out.println("\n=== FACTURA #" + idVenta + " ===");
+        System.out.println("Fecha: " + fecha);
+        System.out.println("Cliente: " + cliente.getNombre());
+        System.out.println("Vendedor: " + vendedor.getNombreEmpleado());
+        System.out.println("Método de pago: " + metodoPago);
+        System.out.println("Detalles:");
+        for (DetalleVenta d : detalles) {
+            System.out.println("  " + d);
+        }
+        System.out.printf("TOTAL: $%.2f%n", total);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Factura #%d - Cliente: %s - Total: $%.2f", idVenta, cliente.getNombre(), total);
+    }
+}
+
+Producto.java:
+
+package com.taller.ventas.model;
+
+public abstract class Producto {
+    protected int idProducto;
+    protected String nombreProducto;
+    protected double precio;
+    protected String categoria;
+
+    public Producto(int idProducto, String nombreProducto, double precio, String categoria) {
+        this.idProducto = idProducto;
+        this.nombreProducto = nombreProducto;
+        this.precio = precio;
+        this.categoria = categoria;
+    }
+
+    public int getIdProducto() { return idProducto; }
+    public String getNombreProducto() { return nombreProducto; }
+    public double getPrecio() { return precio; }
+    public String getCategoria() { return categoria; }
+
+    public void aplicarDescuento(double porcentaje) {
+        if (porcentaje > 0 && porcentaje <= 100) {
+            double descuento = precio * (porcentaje / 100);
+            precio -= descuento;
+            System.out.printf("Descuento aplicado. Nuevo precio: $%.2f%n", precio);
+        } else {
+            System.out.println("Porcentaje inválido.");
+        }
+    }
+
+    public abstract boolean esBajoStock();
+
+    @Override
+    public String toString() {
+        return String.format("Producto{id=%d, nombre='%s', precio=%.2f, categoría='%s'}",
+                idProducto, nombreProducto, precio, categoria);
+    }
+}
+
+ProductoFisico.java:
+
+package com.taller.ventas.model;
+
+public class ProductoFisico extends Producto {
+    private int stock;
+    private double peso;
+    private Proveedor proveedor;
+
+    public ProductoFisico(int idProducto, String nombreProducto, double precio, String categoria,
+                          int stock, double peso, Proveedor proveedor) {
+        super(idProducto, nombreProducto, precio, categoria);
+        this.stock = stock;
+        this.peso = peso;
+        this.proveedor = proveedor;
+    }
+
+    public int getStock() { return stock; }
+    public double getPeso() { return peso; }
+    public Proveedor getProveedor() { return proveedor; }
+
+    public void reducirStock(int cantidad) {
+        if (cantidad > 0 && cantidad <= stock) {
+            stock -= cantidad;
+            System.out.println("Stock actualizado. Nuevo stock: " + stock);
+        } else {
+            throw new IllegalArgumentException("Cantidad no válida o stock insuficiente");
+        }
+    }
+
+    public boolean verificarDisponibilidad(int cantidad) {
+        return stock >= cantidad;
+    }
+
+    @Override
+    public boolean esBajoStock() {
+        return stock < 5; // umbral de bajo stock
+    }
+
+    @Override
+    public String toString() {
+        return super.toString() + String.format(", stock=%d, peso=%.2fkg, proveedor=%s",
+                stock, peso, proveedor.getNombreProveedor());
+    }
+}
+
+Proveedor.java:
+
+package com.taller.ventas.model;
+
+public class Proveedor {
+    private int idProveedor;
+    private String nombreProveedor;
+    private String telefono;
+
+    public Proveedor(int idProveedor, String nombreProveedor, String telefono) {
+        this.idProveedor = idProveedor;
+        this.nombreProveedor = nombreProveedor;
+        this.telefono = telefono;
+    }
+
+    public int getIdProveedor() { return idProveedor; }
+    public String getNombreProveedor() { return nombreProveedor; }
+    public String getTelefono() { return telefono; }
+
+    public void obtenerCatalogo() {
+        System.out.println("Obteniendo catálogo del proveedor: " + nombreProveedor);
+    }
+
+    @Override
+    public String toString() {
+        return "Proveedor{" + "id=" + idProveedor + ", nombre='" + nombreProveedor + "'}";
+    }
+}
+
+Vendedor.java:
+
+package com.taller.ventas.model;
+
+public class Vendedor extends Empleado {
+    public Vendedor(int idEmpleado, String nombreEmpleado, String correo, String turno) {
+        super(idEmpleado, nombreEmpleado, correo, turno);
+    }
+
+    public void registrarVenta(Factura factura) {
+        System.out.println("Vendedor " + nombreEmpleado + " registró la factura #" + factura.getIdVenta());
+    }
+}
+
+ReporteUtil.java:
+
+package com.taller.ventas.service;
+
+import com.taller.ventas.model.Factura;
+import com.taller.ventas.model.ProductoFisico;
+import java.util.*;
+
+public final class ReporteUtil {
+    private ReporteUtil() {}
+
+    public static double calcularTotalVentas(List<Factura> facturas) {
+        return facturas.stream().mapToDouble(Factura::getTotal).sum();
+    }
+
+    public static long contarFacturas(List<Factura> facturas) {
+        return facturas.size();
+    }
+
+    public static Map<String, Integer> obtenerProductosMasVendidos(List<Factura> facturas) {
+        Map<String, Integer> conteo = new HashMap<>();
+        for (Factura f : facturas) {
+            f.getDetalles().forEach(d -> {
+                String nombre = d.getProducto().getNombreProducto();
+                conteo.put(nombre, conteo.getOrDefault(nombre, 0) + d.getCantidad());
+            });
+        }
+        return conteo;
+    }
+
+    public static void imprimirReporte(List<Factura> facturas) {
+        System.out.println("\n=== REPORTE DE VENTAS ===");
+        System.out.printf("Total de ventas: $%.2f%n", calcularTotalVentas(facturas));
+        System.out.printf("Facturas emitidas: %d%n", contarFacturas(facturas));
+        System.out.println("\nProductos más vendidos:");
+        Map<String, Integer> top = obtenerProductosMasVendidos(facturas);
+        top.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                .limit(5)
+                .forEach(e -> System.out.printf("   - %s: %d unidad(es)%n", e.getKey(), e.getValue()));
+    }
+}
+
+Main.java:
+
+package com.taller.ventas;
+
+import com.taller.ventas.model.*;
+import com.taller.ventas.service.ReporteUtil;
+import com.taller.ventas.util.ConsoleHelper;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    private List<Cliente> clientes;
+    private List<ProductoFisico> inventario;
+    private List<Factura> facturas;
+    private Administrador admin;
+    private Vendedor vendedorActual;
+
+    public Main() {
+        clientes = new ArrayList<>();
+        inventario = new ArrayList<>();
+        facturas = new ArrayList<>();
+        inicializarDatos();
+    }
+
+    private void inicializarDatos() {
+        // Proveedores
+        Proveedor proveedorTech = new Proveedor(1, "TechSupplies S.A.", "555-0192");
+
+        // Productos
+        inventario.add(new ProductoFisico(101, "Laptop DevPro 15\"", 1250.00, "Computación", 5, 2.5, proveedorTech));
+        inventario.add(new ProductoFisico(102, "Ratón Inalámbrico", 35.00, "Accesorios", 15, 0.2, proveedorTech));
+        inventario.add(new ProductoFisico(103, "Teclado Mecánico", 85.00, "Accesorios", 8, 0.8, proveedorTech));
+        inventario.add(new ProductoFisico(104, "Monitor 24\"", 320.00, "Computación", 0, 4.0, proveedorTech)); // sin stock
+        inventario.add(new ProductoFisico(105, "Audífonos Bluetooth", 65.00, "Audio", 10, 0.3, proveedorTech));
+
+        // Clientes (precargados para demo)
+        clientes.add(new Cliente(5001, "Andrés Gómez", "andres@correo.com"));
+        clientes.add(new Cliente(5002, "María López", "maria@correo.com"));
+
+        // Empleados
+        admin = new Administrador(1, "Laura Martínez", "admin@tienda.com", "Mañana");
+        vendedorActual = new Vendedor(2, "Carlos Pérez", "carlos@tienda.com", "Tarde");
+    }
+
+    private boolean login() {
+        System.out.println("\n=== SISTEMA DE VENTAS === ");
+        System.out.println("Inicie sesión como administrador\n");
+        String email = ConsoleHelper.leerString("Email: ");
+        String password = ConsoleHelper.leerString("Contraseña: ");
+
+        if (admin.validarCredenciales(email, password)) {
+            System.out.println("\n¡Bienvenido " + admin.getNombreEmpleado() + "!\n");
+            return true;
+        } else {
+            System.out.println("\nCredenciales incorrectas. Acceso denegado.\n");
+            return false;
+        }
+    }
+
+    // --- Menú ---
+    private void registrarCliente() {
+        System.out.println("\nREGISTRAR NUEVO CLIENTE");
+        int id = clientes.size() + 1;
+        String nombre = ConsoleHelper.leerString("Nombre: ");
+        String email = ConsoleHelper.leerString("Email: ");
+        Cliente c = new Cliente(id, nombre, email);
+        clientes.add(c);
+        System.out.println("Cliente registrado con ID " + id);
+    }
+
+    private void consultarClientes() {
+        if (clientes.isEmpty()) {
+            System.out.println("No hay clientes.");
+            return;
+        }
+        System.out.println("\nLISTA DE CLIENTES");
+        for (Cliente c : clientes) System.out.println(c);
+    }
+
+    private void mostrarInventario() {
+        System.out.println("\n🛒 INVENTARIO DE PRODUCTOS");
+        System.out.printf("%-5s %-25s %-10s %-8s %-15s%n", "ID", "Producto", "Precio", "Stock", "Proveedor");
+        System.out.println("--------------------------------------------------------------------------------");
+        for (ProductoFisico p : inventario) {
+            System.out.printf("%-5d %-25s $%-9.2f %-8d %-15s%n",
+                    p.getIdProducto(), p.getNombreProducto(), p.getPrecio(), p.getStock(), p.getProveedor().getNombreProveedor());
+        }
+    }
+
+    private ProductoFisico buscarProductoPorId(int id) {
+        return inventario.stream().filter(p -> p.getIdProducto() == id && p.getStock() > 0).findFirst().orElse(null);
+    }
+
+    private Cliente buscarClientePorId(int id) {
+        return clientes.stream().filter(c -> c.getIdCliente() == id).findFirst().orElse(null);
+    }
+
+    private void realizarVenta() {
+        if (clientes.isEmpty()) {
+            System.out.println("No hay clientes. Registre uno primero.");
+            return;
+        }
+        System.out.println("\nREALIZAR VENTA");
+        int idCliente = ConsoleHelper.leerInt("ID del cliente: ");
+        Cliente cliente = buscarClientePorId(idCliente);
+        if (cliente == null) {
+            System.out.println("Cliente no encontrado.");
+            return;
+        }
+
+        int idFactura = facturas.size() + 1;
+        String metodoPago = ConsoleHelper.leerString("Método de pago (Efectivo/Tarjeta): ");
+        Factura factura = new Factura(idFactura, metodoPago, cliente, vendedorActual);
+
+        boolean agregando = true;
+        while (agregando) {
+            mostrarInventario();
+            int idProducto = ConsoleHelper.leerInt("\nID del producto a vender (0 para terminar): ");
+            if (idProducto == 0) break;
+            ProductoFisico producto = buscarProductoPorId(idProducto);
+            if (producto == null) {
+                System.out.println("Producto no disponible o sin stock.");
+            } else {
+                int cantidad = ConsoleHelper.leerInt("Cantidad: ");
+                try {
+                    factura.agregarDetalle(cantidad, producto);
+                    System.out.println("Producto agregado. Subtotal actual: $" + factura.getTotal());
+                } catch (IllegalArgumentException e) {
+                    System.out.println("NO" + e.getMessage());
+                }
+            }
+            agregando = ConsoleHelper.leerBoolean("¿Agregar otro producto?");
+        }
+
+        if (factura.getDetalles().isEmpty()) {
+            System.out.println("Venta cancelada (sin productos).");
+            return;
+        }
+
+        factura.imprimirFactura();
+        vendedorActual.registrarVenta(factura);
+        cliente.agregarFactura(factura);
+        facturas.add(factura);
+        System.out.println("Venta registrada exitosamente.");
+    }
+
+    private void generarReportes() {
+        if (facturas.isEmpty()) {
+            System.out.println("No hay ventas registradas.");
+            return;
+        }
+        ReporteUtil.imprimirReporte(facturas);
+    }
+
+    private void gestionarInventario() {
+        System.out.println("\nGESTIÓN DE INVENTARIO");
+        admin.gestionarInventario();
+        // Aquí podrías agregar opciones para añadir stock, etc.
+        System.out.println("Funcionalidad en desarrollo. Por ahora, solo se muestra el inventario.");
+        mostrarInventario();
+    }
+
+    private void mostrarMenu() {
+        System.out.println("\n" + "=".repeat(55));
+        System.out.println("          MENÚ PRINCIPAL - SISTEMA DE VENTAS");
+        System.out.println("=".repeat(55));
+        System.out.println("1. Registrar nuevo cliente");
+        System.out.println("2. Consultar clientes");
+        System.out.println("3. Ver inventario");
+        System.out.println("4. Realizar venta");
+        System.out.println("5. Reportes de ventas");
+        System.out.println("6. Gestionar inventario (Admin)");
+        System.out.println("7. Salir");
+        System.out.println("=".repeat(55));
+    }
+
+    public void ejecutar() {
+        if (!login()) return;
+        int opcion;
+        do {
+            mostrarMenu();
+            opcion = ConsoleHelper.leerInt("Opción: ");
+            switch (opcion) {
+                case 1: registrarCliente(); break;
+                case 2: consultarClientes(); break;
+                case 3: mostrarInventario(); break;
+                case 4: realizarVenta(); break;
+                case 5: generarReportes(); break;
+                case 6: gestionarInventario(); break;
+                case 7: System.out.println("\n¡Hasta luego!"); break;
+                default: System.out.println("Opción inválida.");
+            }
+        } while (opcion != 7);
+    }
+
+    public static void main(String[] args) {
+        new Main().ejecutar();
+    }
+}
